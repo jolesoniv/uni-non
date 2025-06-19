@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>uni-non</title>
+  <style>
+    html, body {
+      margin: 0;
+      padding: 0;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background-color: black;
+    }
+
+    video {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      pointer-events: none;
+      opacity: 0;
+      transition: opacity 0.9s ease;
+      z-index: 1;
+    }
+
+    .diamond-gif {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      z-index: 2;
+      pointer-events: none;
+      transition: transform 0.4s ease;
+    }
+
+    .diamond-hover-zone {
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      width: 200px;
+      height: 200px;
+      transform: translate(-50%, -50%);
+      z-index: 3;
+      pointer-events: auto;
+    }
+
+    .diamond-hover-zone:hover ~ .diamond-gif:not(.clicked) {
+      transform: scale(1.05);
+    }
+
+    .diamond-hover-zone:active ~ .diamond-gif:not(.clicked) {
+      transform: scale(0.95);
+    }
+
+    @media (max-width: 768px) {
+      video, .diamond-gif {
+        object-fit: none;
+        width: 100%;
+        height: 100%;
+        transform: scaleX(3);
+        transform-origin: center;
+      }
+
+      .diamond-hover-zone {
+        width: 200px;
+        height: 200px;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+      }
+    }
+  </style>
+</head>
+<body>
+  <video id="intro" autoplay muted playsinline preload="auto">
+    <source src="b4 the button background/background intro.mp4" type="video/mp4" />
+  </video>
+  <video id="loop1" muted playsinline preload="auto">
+    <source src="b4 the button background/background loop.mp4" type="video/mp4" />
+  </video>
+  <video id="loop2" muted playsinline preload="auto">
+    <source src="b4 the button background/background loop.mp4" type="video/mp4" />
+  </video>
+  <video id="button-bg" muted playsinline preload="auto">
+    <source src="b4 the button background/background button.mp4" type="video/mp4" />
+  </video>
+  <video id="main-intro" muted playsinline preload="auto">
+    <source src="main page background/main intro.mp4" type="video/mp4" />
+  </video>
+  <video id="main-loop1" muted playsinline preload="auto">
+    <source src="main page background/main loop.mp4" type="video/mp4" />
+  </video>
+  <video id="main-loop2" muted playsinline preload="auto">
+    <source src="main page background/main loop.mp4" type="video/mp4" />
+  </video>
+
+  <div class="diamond-hover-zone" id="diamond-zone"></div>
+  <img src="diamond video launch/diamond loop.gif" alt="Diamond Animation" class="diamond-gif" id="diamond-gif" />
+
+  <script>
+    const intro = document.getElementById('intro');
+    const loop1 = document.getElementById('loop1');
+    const loop2 = document.getElementById('loop2');
+    const buttonBg = document.getElementById('button-bg');
+    const mainIntro = document.getElementById('main-intro');
+    const mainLoop1 = document.getElementById('main-loop1');
+    const mainLoop2 = document.getElementById('main-loop2');
+    const diamondGif = document.getElementById('diamond-gif');
+    const diamondZone = document.getElementById('diamond-zone');
+
+    let loopGroup = { current: loop1, next: loop2, lock: false };
+    let isCrossfading = false;
+    const crossfadeDuration = 900;
+
+    mainLoop1.style.opacity = 0;
+    mainLoop2.style.opacity = 0;
+    intro.style.opacity = 1;
+
+    function crossfade(outVid, inVid) {
+      inVid.currentTime = 0;
+      inVid.play();
+      inVid.style.opacity = 1;
+      outVid.style.opacity = 0;
+    }
+
+    intro.addEventListener('timeupdate', () => {
+      if (!isCrossfading && intro.duration - intro.currentTime <= 1.11) {
+        isCrossfading = true;
+        crossfade(intro, loop1);
+        setTimeout(() => { isCrossfading = false; }, crossfadeDuration * 2);
+      }
+    });
+
+    function setupLoop(fromVid, toVid, group) {
+      fromVid.addEventListener('timeupdate', () => {
+        if (!group.lock && fromVid.duration - fromVid.currentTime <= 1.11) {
+          group.lock = true;
+          crossfade(fromVid, toVid);
+          [group.current, group.next] = [toVid, fromVid];
+          setTimeout(() => { group.lock = false; }, crossfadeDuration * 2);
+        }
+      });
+    }
+
+    setupLoop(loop1, loop2, loopGroup);
+    setupLoop(loop2, loop1, loopGroup);
+
+    function setupMainLoop() {
+      let mainGroup = { current: mainLoop1, next: mainLoop2, lock: false };
+      mainLoop1.style.opacity = 1;
+      setupLoop(mainLoop1, mainLoop2, mainGroup);
+      setupLoop(mainLoop2, mainLoop1, mainGroup);
+    }
+
+    diamondZone.addEventListener('click', () => {
+      if (diamondGif.classList.contains('clicked')) return;
+      diamondGif.classList.add('clicked');
+
+      if (window.navigator.vibrate) {
+        window.navigator.vibrate(10);
+      }
+
+      diamondGif.src = "diamond video launch/diamond button.gif?nocache=" + Date.now();
+
+      setTimeout(() => {
+        loop1.pause(); loop1.style.opacity = 0;
+        loop2.pause(); loop2.style.opacity = 0;
+
+        buttonBg.currentTime = 0;
+        buttonBg.play();
+        buttonBg.style.opacity = 1;
+
+        buttonBg.addEventListener('ended', () => {
+          mainIntro.currentTime = 0;
+          mainIntro.style.opacity = 1;
+          buttonBg.style.opacity = 0;
+          mainIntro.play();
+
+          mainIntro.addEventListener('ended', () => {
+            crossfade(mainIntro, mainLoop1);
+            setupMainLoop();
+          }, { once: true });
+        }, { once: true });
+      }, 2200);
+    });
+  </script>
+</body>
+</html>
